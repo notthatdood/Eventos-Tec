@@ -98,8 +98,8 @@ def crear_asociacion():
 
     try:
         # Valida si la asociación ya fue registrada 
-        asociacion = base.child("asociacion").get()
-        for asociacion in asociacion.each():
+        asociaciones = base.child("asociacion").get()
+        for asociacion in asociaciones.each():
             print(asociacion.val()["asociacion_id"])
             if (asociacion.val()["asociacion_id"] == asociacion_id):
                 return jsonify({"message": "Esta asociacion ya ha sido registrada"})
@@ -290,7 +290,7 @@ def asignar_colaborador():
     evento_id = data["evento_id"]
     actividad_id = data["actividad_id"]
 
-    if flag:
+    if flag == 'true':
         nueva_asignacion = {
             "carnet": carnet,
             "evento_id": evento_id,
@@ -408,7 +408,9 @@ def update_evento():
                 if (descripcion != ""):
                     base.child("evento").child(evento.key()).update(
                         {"descripcion": descripcion})
-
+                message = "Se modificó el evento: "
+                message = message + nombre
+                enviarCorreoATodos(message.encode('utf-8'))
                 return jsonify({"message": "El evento se edito exitosamente"})
 
         return jsonify({"message": "Este evento no se ha encontrado"})
@@ -632,71 +634,252 @@ def get_estudiantes():
     except:
         return jsonify({"message": "Hubo un error al consultar los estudiantes"})
 
-# Esta función actualiza la información de un colaborador
+# Esta función actualiza la información de un estudiante
 @api.route('/uptade_estudiante', methods=["POST"])
 def uptade_estudiante():
     data = request.get_json()
     carnet = data["carnet"]
     nombre = data["nombre"]
     correo = data["correo"]
-    asociacion_id = data["asociacion_id"]
-    es_organizador = data["es_organizador"]
 
     nuevo_colaborador = {
         "carnet": carnet,
         "nombre": nombre,
-        "correo": correo,
-        "asociacion_id": asociacion_id,
-        "es_organizador": es_organizador
+        "correo": correo
 
     }
 
     try:
-        colaboradores = base.child("colaborador").get()
-        for colaborador in colaboradores.each():
-            print(colaborador.val()["carnet"])
-            if (colaborador.val()["carnet"] == carnet):
+        estudiantes = base.child("estudiante").get()
+        for estudiante in estudiantes.each():
+            print(estudiante.val()["carnet"])
+            if (estudiante.val()["carnet"] == carnet):
                 if (nombre != ""):
-                    base.child("colaborador").child(
-                        colaborador.key()).update({"nombre": nombre})
+                    base.child("estudiante").child(
+                        estudiante.key()).update({"nombre": nombre})
                 if (correo != ""):
-                    base.child("colaborador").child(
-                        colaborador.key()).update({"correo": correo})
-                if (asociacion_id != ""):
-                    base.child("colaborador").child(colaborador.key()).update(
-                        {"asociacion_id": asociacion_id})
-                if (es_organizador != ""):
-                    base.child("colaborador").child(colaborador.key()).update(
-                        {"es_organizador": es_organizador})
+                    base.child("estudiante").child(
+                        estudiante.key()).update({"correo": correo})
                 
-                return jsonify({"message": "El colaborador se editó exitosamente"})
+                return jsonify({"message": "El estudiante se editó exitosamente"})
 
-        return jsonify({"message": "Este colaborador no se ha encontrado"})
+        return jsonify({"message": "Este estudiante no se ha encontrado"})
 
     except:
-        return jsonify({"message": "Hubo un error al editar al colaborador"})
+        return jsonify({"message": "Hubo un error al editar al estudiante"})
 
-# Esta función elimina a un colaborador
+# Esta función elimina a un estudiante
 @api.route('/delete_estudiante', methods=["POST"])
 def delete_estudiante():
     data = request.get_json()
     carnet = data["carnet"]
 
     try:
-        colaboradores = base.child("colaborador").get()
-        for colaborador in colaboradores.each():
-            if (colaborador.val()["carnet"] == carnet):
-                base.child("colaborador").child(colaborador.key()).remove()
-                return jsonify({"message": "El colaborador se elimino exitosamente"})
+        estudiantes = base.child("estudiante").get()
+        for estudiante in estudiantes.each():
+            if (estudiante.val()["carnet"] == carnet):
+                base.child("estudiante").child(estudiante.key()).remove()
+                return jsonify({"message": "El estudiante se elimino exitosamente"})
 
-        return jsonify({"message": "El colaborador no existe"})
+        return jsonify({"message": "El estudiante no existe"})
 
     except:
-        return jsonify({"message": "Hubo un error al eliminar al colaborador"})
+        return jsonify({"message": "Hubo un error al eliminar al estudiante"})
 
 
+############################################ Reservas #############################################
+
+# Esta función crea una asignación para un colaborador
+@api.route('/reservar_evento ', methods=["POST"])
+def reservar_evento ():
+    data = request.get_json()
+    correo = data["correo"]
+    flag = data["flag"]
+    evento_id = data["evento_id"]
+
+    if flag == 'true':
+        nueva_asignacion = {
+            "correo": correo,
+            "evento_id": evento_id,
+            "estado_reserva": "activo"
+        }
+    else: 
+        nueva_asignacion = {
+            "correo": correo,
+            "evento_id": evento_id,
+            "estado_reserva": "cancelado"
+        }
+    try:
+        reservas = base.child("reserva").get()
+        for reserva in reservas.each():
+            if ((reserva.val()["correo"] == correo) and (reserva.val()["evento_id"] == evento_id)):
+                base.child("reserva").child(reserva.key()).update(
+                    {"estado_reserva": nueva_asignacion["estado_reserva"]})
+                message = "Se canceló la reserva del evento: "
+                message = message + str(nueva_asignacion["evento_id"])
+                enviarCorreo(correo, message.encode('utf-8'))
+                return jsonify({"message": "La reserva se modifico exitosamente"})
+
+        message = "Se creó la reserva del evento: "
+        message = message + str(nueva_asignacion["evento_id"])
+        enviarCorreo(correo, message.encode('utf-8'))
+        base.child("asignacion").push(nueva_asignacion)
+        return jsonify({"message": "La reserva se registro exitosamente"})
+
+    except:
+        return jsonify({"message": "Hubo un error al agregar la reserva"})
+
+############################################ Propuestas #############################################
+#esta funcion crea una nueva propuesta
+@api.route('/enviar_propuesta', methods=["POST"])
+def enviar_propuesta():
+    data = request.get_json()
+    evento_id = data["evento_id"]
+    carnet = data["carnet"]
+    propuesta = data["propuesta"]
+
+    nueva_propuesta = {
+        "evento_id": evento_id,
+        "carnet": carnet,
+        "propuesta": propuesta,
+        "es_aprobado": "false",
+        "propuesta_id": str(0)
+    }
+
+    try:
+        # Valida si la asociación ya fue registrada 
+        propuestas = base.child("propuesta").get()
+        j=0
+        for i in propuestas.each():
+            j+=1
+        nueva_propuesta["propuesta_id"] = str(j)
+        base.child("propuesta").push(nueva_propuesta)
+        return jsonify({"message": "La propuesta se envio exitosamente"})
+
+    except:
+        return jsonify({"message": "Hubo un error al enviar la propuesta"})
+
+#Esta función es un get de las propuestas
+@api.route('/get_propuestas', methods=["POST"])
+def get_propuestas():
+    try:
+        propuestas = base.child("propuesta").get().val()
+        lista_propuestas = list(propuestas.values())
+        return jsonify(lista_propuestas)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar las propuestas"})
+
+# Esta función es para decidir si se aprueba o no la proposición
+@api.route('/evaluar_propuesta', methods=["POST"])
+def evaluar_propuesta():
+    data = request.get_json()
+    propuesta_id = data["propuesta_id"]
+    es_aprobado = data["es_aprobado"]
+
+    nueva_asociacion = {
+        "propuesta_id": propuesta_id,
+        "es_aprobado": es_aprobado
+    }
+
+    try:
+        propuestas = base.child("propuesta").get()
+        for propuesta in propuestas.each():
+            if (propuesta.val()["propuesta_id"] == propuesta_id):
+                if (es_aprobado != ""):
+                    base.child("propuesta").child(propuesta.key()).update(
+                        {"es_aprobado": es_aprobado})
+
+                return jsonify({"message": "La propuesta se actualizó exitosamente"})
+
+        return jsonify({"message": "La propuesta no existe"})
+
+    except:
+        return jsonify({"message": "Hubo un error al actualizar la propuesta"})
+
+############################################ Foro #############################################
+
+# Esta función es un envío de mensaje al foro
+@api.route('/enviar_mensaje', methods=["POST"])
+def enviar_mensaje():
+    data = request.get_json()
+    correo = data["correo"]
+    mensaje = data["mensaje"]
+
+    nuevo_mensaje = {
+        "correo": correo,
+        "mensaje": mensaje
+    }
+
+    try:
+        base.child("mensaje").push(nuevo_mensaje)
+        return jsonify({"message": "El mensaje se envio exitosamente"})
+
+    except:
+        return jsonify({"message": "Hubo un error al enviar el mensaje"})
 
 
+#Esta función es un get de los mensajes
+@api.route('/get_mensajes', methods=["POST"])
+def get_mensajes():
+    try:
+        mensajes = base.child("mensaje").get().val()
+        lista_mensajes = list(mensajes.values())
+        return jsonify(lista_mensajes)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar los mensajes"})
+
+############################################ Estadísticas #############################################
+# Un get de los eventos y el total de reservas que tuvieron
+# FALTA sacar los stats
+@api.route('/participacion_eventos', methods=["POST"])
+def participacion_eventos():
+    try:
+        mensajes = base.child("reserva").get().val()
+        lista_mensajes = list(mensajes.values())
+        return jsonify(lista_mensajes)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar los mensajes"})
+    
+#Un get de los eventos y el total de likes y dislikes que tuvieron
+#FALTA sacar los stats
+@api.route('/evaluacion_eventos', methods=["POST"])
+def evaluacion_eventos():
+    try:
+        mensajes = base.child("feedback").get().val()
+        lista_mensajes = list(mensajes.values())
+        return jsonify(lista_mensajes)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar los mensajes"})
+
+
+############################################ Feedback #############################################
+
+@api.route('/enviar_feedback', methods=["POST"])
+def enviar_feedback():
+    data = request.get_json()
+    correo = data["correo"]
+    mensaje = data["mensaje"]
+    is_like = data["is_like"]
+    evento_id = data["evento_id"]
+
+
+    nuevo_feedback = {
+        "correo": correo,
+        "is_like": is_like,
+        "evento_id": evento_id,
+        "mensaje": mensaje
+    }
+
+    try:
+        base.child("feedback").push(nuevo_feedback)
+        return jsonify({"message": "El feedback se envio exitosamente"})
+
+    except:
+        return jsonify({"message": "Hubo un error al enviar el feedback"})
 
 
 @api.route("/")
