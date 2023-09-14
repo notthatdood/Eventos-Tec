@@ -172,114 +172,114 @@ def delete_asociacion():
     except:
         return jsonify({"message": "Hubo un error al eliminar La asociacion"})
 
-############################################# Colaboradores ############################################
+############################################# Estudiantes ############################################
 
-# Esta función registra a un colaboradorm, primero revisa si uno con este carnet ya existía
-@api.route('/crear_colaborador', methods=["POST"])
-def crear_colaborador():
+# Esta función registra a un estudiante, primero revisa si uno con este carnet ya existía
+@api.route('/crear_estudiante', methods=["POST"])
+def crear_estudiante():
     data = request.get_json()
     carnet = data["carnet"]
     nombre = data["nombre"]
     asociacion_id = data["asociacion_id"]
-    es_organizador = data["es_organizador"]
+    tipo = data["tipo"]
     correo = data["correo"]
     contrasena = data["contrasena"]
 
-    nuevo_colaborador = {
+    nuevo_estudiante = {
         "carnet": carnet,
         "nombre": nombre,
         "asociacion_id": asociacion_id,
-        "es_organizador": es_organizador,
+        "tipo": tipo,
         "correo": correo,
         "contrasena": contrasena
     }
 
     try:
         # Validates if the student has already been registered
-        colaboradores = base.child("colaborador").get()
-        for colaborador in colaboradores.each():
-            print(colaborador.val()["carnet"])
-            if (colaborador.val()["carnet"] == carnet):
-                return jsonify({"message": "Este colaborador ya ha sido registrado"})
+        estudiantes = base.child("estudiante").get()
+        for estudiante in estudiantes.each():
+            print(estudiante.val()["carnet"])
+            if (estudiante.val()["carnet"] == carnet):
+                return jsonify({"message": "Este estudiante ya ha sido registrado"})
 
-        base.child("colaborador").push(nuevo_colaborador)
-        return jsonify({"message": "El colaborador se registro exitosamente"})
+        base.child("estudiante").push(nuevo_estudiante)
+        return jsonify({"message": "El estudiante se registro exitosamente"})
 
     except:
-        return jsonify({"message": "Hubo un error al agregar al colaborador"})
+        return jsonify({"message": "Hubo un error al agregar al estudiante"})
 
-# Esta función es un get de los colaboradores
-@api.route('/get_colaboradores', methods=["POST"])
-def get_colaboradores():
+# Esta función es un get de los estudiante
+@api.route('/get_estudiantes', methods=["POST"])
+def get_estudiantes():
     try:
-        colaboradores = base.child("colaborador").get().val()
-        lista_colaboradores = list(colaboradores.values())
-        return jsonify(lista_colaboradores)
+        estudiantes = base.child("estudiante").get().val()
+        lista_estudiantes = list(estudiantes.values())
+        return jsonify(lista_estudiantes)
 
     except:
-        return jsonify({"message": "Hubo un error al consultar los colaboradores"})
+        return jsonify({"message": "Hubo un error al consultar los estudiante"})
 
-# Esta función actualiza la información de un colaborador
-@api.route('/update_colaborador', methods=["POST"])
-def update_colaborador():
+# Esta función actualiza la información de un estudiante
+@api.route('/update_estudiante', methods=["POST"])
+def update_estudiante():
     data = request.get_json()
     carnet = data["carnet"]
     nombre = data["nombre"]
     correo = data["correo"]
     asociacion_id = data["asociacion_id"]
-    es_organizador = data["es_organizador"]
+    tipo = data["tipo"]
 
-    nuevo_colaborador = {
+    nuevo_estudiante = {
         "carnet": carnet,
         "nombre": nombre,
         "correo": correo,
         "asociacion_id": asociacion_id,
-        "es_organizador": es_organizador
+        "tipo": tipo
 
     }
 
     try:
-        colaboradores = base.child("colaborador").get()
-        for colaborador in colaboradores.each():
-            print(colaborador.val()["carnet"])
-            if (colaborador.val()["carnet"] == carnet):
+        estudiantes = base.child("estudiante").get()
+        for estudiante in estudiantes.each():
+            print(estudiante.val()["carnet"])
+            if (estudiante.val()["carnet"] == carnet):
                 if (nombre != ""):
-                    base.child("colaborador").child(
-                        colaborador.key()).update({"nombre": nombre})
+                    base.child("estudiante").child(
+                        estudiante.key()).update({"nombre": nombre})
                 if (correo != ""):
-                    base.child("colaborador").child(
-                        colaborador.key()).update({"correo": correo})
+                    base.child("estudiante").child(
+                        estudiante.key()).update({"correo": correo})
                 if (asociacion_id != ""):
-                    base.child("colaborador").child(colaborador.key()).update(
+                    base.child("estudiante").child(estudiante.key()).update(
                         {"asociacion_id": asociacion_id})
-                if (es_organizador != ""):
-                    base.child("colaborador").child(colaborador.key()).update(
-                        {"es_organizador": es_organizador})
+                if (tipo != ""):
+                    base.child("estudiante").child(estudiante.key()).update(
+                        {"tipo": tipo})
                 
-                return jsonify({"message": "El colaborador se editó exitosamente"})
+                return jsonify({"message": "El estudiante se editó exitosamente"})
 
-        return jsonify({"message": "Este colaborador no se ha encontrado"})
+        return jsonify({"message": "Este estudiante no se ha encontrado"})
 
     except:
-        return jsonify({"message": "Hubo un error al editar al colaborador"})
+        return jsonify({"message": "Hubo un error al editar al estudiante"})
 
-# Esta función elimina a un colaborador
-@api.route('/delete_colaborador', methods=["POST"])
-def delete_colaborador():
+# Esta función elimina a un estudiante
+@api.route('/delete_estudiante', methods=["POST"])
+def delete_estudiante():
     data = request.get_json()
     carnet = data["carnet"]
 
     try:
-        colaboradores = base.child("colaborador").get()
-        for colaborador in colaboradores.each():
-            if (colaborador.val()["carnet"] == carnet):
-                base.child("colaborador").child(colaborador.key()).remove()
-                return jsonify({"message": "El colaborador se elimino exitosamente"})
+        estudiantes = base.child("estudiante").get()
+        for estudiante in estudiantes.each():
+            if (estudiante.val()["carnet"] == carnet):
+                base.child("estudiante").child(estudiante.key()).remove()
+                return jsonify({"message": "El estudiante se elimino exitosamente"})
 
-        return jsonify({"message": "El colaborador no existe"})
+        return jsonify({"message": "El estudiante no existe"})
 
     except:
-        return jsonify({"message": "Hubo un error al eliminar al colaborador"})
+        return jsonify({"message": "Hubo un error al eliminar al estudiante"})
 
 # Esta función crea una asignación para un colaborador
 @api.route('/asignar_colaborador', methods=["POST"])
@@ -589,102 +589,6 @@ def delete_actividad():
 
     except:
         return jsonify({"message": "Hubo un error al eliminar la actividad"})
-
-
-############################################# Estudiantes ############################################
-
-# Crear un estudiante
-@api.route('/crear_estudiante', methods=["POST"])
-def crear_estudiante():
-    data = request.get_json()
-    carnet = data["carnet"]
-    nombre = data["nombre"]
-    correo = data["correo"]
-    contrasena = data["contrasena"]
-
-    nuevo_estudiante = {
-        "carnet": carnet,
-        "nombre": nombre,
-        "correo": correo,
-        "contrasena": contrasena
-    }
-
-    try:
-        # Validates if the student has already been registered
-        estudiantes = base.child("estudiante").get()
-        for estudiante in estudiantes.each():
-            print(estudiante.val()["carnet"])
-            if (estudiante.val()["carnet"] == carnet):
-                return jsonify({"message": "Este estudiante ya ha sido registrado"})
-
-        base.child("estudiante").push(nuevo_estudiante)
-        return jsonify({"message": "El estudiante se registro exitosamente"})
-
-    except:
-        return jsonify({"message": "Hubo un error al agregar al estudiante"})
-
-# Esta función es un get de los estudiantes
-@api.route('/get_estudiantes', methods=["POST"])
-def get_estudiantes():
-    try:
-        estudiantes = base.child("estudiante").get().val()
-        lista_estudiantes = list(estudiantes.values())
-        return jsonify(lista_estudiantes)
-
-    except:
-        return jsonify({"message": "Hubo un error al consultar los estudiantes"})
-
-# Esta función actualiza la información de un estudiante
-@api.route('/uptade_estudiante', methods=["POST"])
-def uptade_estudiante():
-    data = request.get_json()
-    carnet = data["carnet"]
-    nombre = data["nombre"]
-    correo = data["correo"]
-
-    nuevo_colaborador = {
-        "carnet": carnet,
-        "nombre": nombre,
-        "correo": correo
-
-    }
-
-    try:
-        estudiantes = base.child("estudiante").get()
-        for estudiante in estudiantes.each():
-            print(estudiante.val()["carnet"])
-            if (estudiante.val()["carnet"] == carnet):
-                if (nombre != ""):
-                    base.child("estudiante").child(
-                        estudiante.key()).update({"nombre": nombre})
-                if (correo != ""):
-                    base.child("estudiante").child(
-                        estudiante.key()).update({"correo": correo})
-                
-                return jsonify({"message": "El estudiante se editó exitosamente"})
-
-        return jsonify({"message": "Este estudiante no se ha encontrado"})
-
-    except:
-        return jsonify({"message": "Hubo un error al editar al estudiante"})
-
-# Esta función elimina a un estudiante
-@api.route('/delete_estudiante', methods=["POST"])
-def delete_estudiante():
-    data = request.get_json()
-    carnet = data["carnet"]
-
-    try:
-        estudiantes = base.child("estudiante").get()
-        for estudiante in estudiantes.each():
-            if (estudiante.val()["carnet"] == carnet):
-                base.child("estudiante").child(estudiante.key()).remove()
-                return jsonify({"message": "El estudiante se elimino exitosamente"})
-
-        return jsonify({"message": "El estudiante no existe"})
-
-    except:
-        return jsonify({"message": "Hubo un error al eliminar al estudiante"})
 
 
 ############################################ Reservas #############################################
