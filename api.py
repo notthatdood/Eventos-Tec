@@ -111,7 +111,7 @@ def crear_asociacion():
         return jsonify({"message": "Hubo un error al agregar la asociacion"})
 
 # Esta función es un get de todas las asociaciones
-@api.route('/get_asociaciones ', methods=["POST"])
+@api.route('/get_asociaciones', methods=["POST"])
 def get_asociaciones():
     try:
         asociaciones = base.child("asociacion").get().val()
@@ -132,16 +132,12 @@ def update_asociacion():
         "asociacion_id": asociacion_id,
         "nombre": nombre
     }
-
     try:
         asociaciones = base.child("asociacion").get()
         for asociacion in asociaciones.each():
             if (asociacion.val()["asociacion_id"] == asociacion_id):
-                if (asociacion_id != ""):
-                    base.child("asociacion").child(asociacion.key()).update(
-                        {"asociacion_id": asociacion_id})
                 if (nombre != ""):
-                    base.child("nombre").child(
+                    base.child("asociacion").child(
                         asociacion.key()).update({"nombre": nombre})
                 
                 message = "Se actualizaron los datos de la asociacion: "
@@ -311,7 +307,7 @@ def asignar_colaborador():
 ############################################# Eventos ############################################
 
 # Esta función crea un evento
-@api.route('/crear_evento ', methods=["POST"])
+@api.route('/crear_evento', methods=["POST"])
 def crear_evento():
     data = request.get_json()
     evento_id = data["evento_id"]
@@ -322,12 +318,7 @@ def crear_evento():
     capacidad = data["capacidad"]
     descripcion = data["descripcion"]
 
-
-    correo = data["correo"]
-    contrasena = data["contrasena"]
-
     nuevo_evento = {
-        "data": data,
         "evento_id": evento_id,
         "nombre": nombre,
         "fecha_inicio": fecha_inicio,
@@ -464,7 +455,39 @@ def update_capacidad():
     except:
         return jsonify({"message": "Hubo un error al editar al evento"})
 
+# Crea un nuevo interes
+@api.route('/marcar_interes', methods=["POST"])
+def marcar_interes():
+    data = request.get_json()
 
+    evento_id = data["evento_id"]
+    correo = data["correo"]
+
+    nuevo_interes = {
+        "evento_id": evento_id,
+        "correo": correo
+    }
+
+    try:
+        # Validates if the event has already been registered
+        intereses = base.child("interes").get()
+
+        base.child("interes").push(nuevo_interes)
+        return jsonify({"message": "El interes se registro exitosamente"})
+
+    except:
+        return jsonify({"message": "Hubo un error al agregar el interes"})
+
+#Retorna todos los intereses
+@api.route('/get_intereses', methods=["POST"])
+def get_interes():
+    try:
+        intereses = base.child("interes").get().val()
+        lista_intereses = list(intereses.values())
+        return jsonify(lista_intereses)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar los intereses"})
 ############################################# Actividades ############################################
 
 # Esta función crea una nueva actividad
@@ -594,14 +617,14 @@ def delete_actividad():
 ############################################ Reservas #############################################
 
 # Esta función crea una asignación para un colaborador
-@api.route('/reservar_evento ', methods=["POST"])
-def reservar_evento ():
+@api.route('/reservar_evento', methods=["POST"])
+def reservar_evento():
     data = request.get_json()
     correo = data["correo"]
     flag = data["flag"]
     evento_id = data["evento_id"]
 
-    if flag == 'true':
+    if flag == 'inscripcion':
         nueva_asignacion = {
             "correo": correo,
             "evento_id": evento_id,
@@ -627,7 +650,7 @@ def reservar_evento ():
         message = "Se creó la reserva del evento: "
         message = message + str(nueva_asignacion["evento_id"])
         enviarCorreo(correo, message.encode('utf-8'))
-        base.child("asignacion").push(nueva_asignacion)
+        base.child("reserva").push(nueva_asignacion)
         return jsonify({"message": "La reserva se registro exitosamente"})
 
     except:
@@ -639,15 +662,14 @@ def reservar_evento ():
 def enviar_propuesta():
     data = request.get_json()
     evento_id = data["evento_id"]
-    carnet = data["carnet"]
+    correo = data["correo"]
     propuesta = data["propuesta"]
 
     nueva_propuesta = {
         "evento_id": evento_id,
-        "carnet": carnet,
+        "correo": correo,
         "propuesta": propuesta,
         "es_aprobado": "false",
-        "propuesta_id": str(0)
     }
 
     try:
@@ -740,24 +762,54 @@ def get_mensajes():
 @api.route('/participacion_eventos', methods=["POST"])
 def participacion_eventos():
     try:
-        mensajes = base.child("reserva").get().val()
-        lista_mensajes = list(mensajes.values())
-        return jsonify(lista_mensajes)
+        lista_participacion = []
+        eventos = base.child("evento").get()
+        reservas = base.child("reserva").get()
+        for evento in eventos.each():
+            participacion_counter = 0
+            for reserva in reservas.each():
+                if reserva.val()["evento_id"] == evento.val()["evento_id"]:
+                    participacion_counter += 1
+                
+            participacion = {
+                "nombre": evento.val()["nombre"],
+                "total_participantes": participacion_counter
+            }
+            lista_participacion.append(participacion)
+        return jsonify(lista_participacion)
 
     except:
-        return jsonify({"message": "Hubo un error al consultar los mensajes"})
+        return jsonify({"message": "Hubo un error al consultar la participacion"})
     
 #Un get de los eventos y el total de likes y dislikes que tuvieron
 #FALTA sacar los stats
 @api.route('/evaluacion_eventos', methods=["POST"])
 def evaluacion_eventos():
     try:
-        mensajes = base.child("feedback").get().val()
-        lista_mensajes = list(mensajes.values())
-        return jsonify(lista_mensajes)
+        lista_evaluacion = []
+        eventos = base.child("evento").get()
+        feedbacks = base.child("feedback").get()
+        for evento in eventos.each():
+            like_counter = 0
+            dislike_counter = 0
+
+            for feedback in feedbacks.each():
+                if feedback.val()["evento_id"] == evento.val()["evento_id"]:
+                    if feedback.val()["is_like"] =="true":
+                        like_counter += 1
+                    else:
+                        dislike_counter += 1
+
+            evaluacion = {
+                "nombre": evento.val()["nombre"],
+                "total_likes": like_counter,
+                "total_dislikes": dislike_counter
+            }
+            lista_evaluacion.append(evaluacion)
+        return jsonify(lista_evaluacion)
 
     except:
-        return jsonify({"message": "Hubo un error al consultar los mensajes"})
+        return jsonify({"message": "Hubo un error al consultar la participacion"})
 
 
 ############################################ Feedback #############################################
