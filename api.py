@@ -642,10 +642,20 @@ def reservar_evento():
             if ((reserva.val()["correo"] == correo) and (reserva.val()["evento_id"] == evento_id)):
                 base.child("reserva").child(reserva.key()).update(
                     {"estado_reserva": nueva_asignacion["estado_reserva"]})
-                message = "Se canceló la reserva del evento: "
+                message = "Se modificó la reserva del evento: "
                 message = message + str(nueva_asignacion["evento_id"])
                 enviarCorreo(correo, message.encode('utf-8'))
                 return jsonify({"message": "La reserva se modifico exitosamente"})
+        
+
+        eventos = base.child("evento").get()
+        for evento in eventos.each():
+            if (evento.val()["evento_id"] == evento_id):
+                capacidad = int(evento.val()["capacidad"]) - 1
+                if capacidad == -1:
+                    return jsonify({"message": "No hay cupos disponibles"})
+                base.child("evento").child(evento.key()).update(
+                    {"capacidad": str(capacidad)})
 
         message = "Se creó la reserva del evento: "
         message = message + str(nueva_asignacion["evento_id"])
@@ -669,7 +679,7 @@ def enviar_propuesta():
         "evento_id": evento_id,
         "correo": correo,
         "propuesta": propuesta,
-        "es_aprobado": "false",
+        "es_aprobado": "pending"
     }
 
     try:
@@ -678,7 +688,7 @@ def enviar_propuesta():
         j=0
         for i in propuestas.each():
             j+=1
-        nueva_propuesta["propuesta_id"] = str(j)
+        nueva_propuesta["propuesta_id"] = str(j+1)
         base.child("propuesta").push(nueva_propuesta)
         return jsonify({"message": "La propuesta se envio exitosamente"})
 
@@ -707,7 +717,7 @@ def evaluar_propuesta():
         "propuesta_id": propuesta_id,
         "es_aprobado": es_aprobado
     }
-
+    print(es_aprobado)
     try:
         propuestas = base.child("propuesta").get()
         for propuesta in propuestas.each():
@@ -715,6 +725,7 @@ def evaluar_propuesta():
                 if (es_aprobado != ""):
                     base.child("propuesta").child(propuesta.key()).update(
                         {"es_aprobado": es_aprobado})
+                print(es_aprobado)
 
                 return jsonify({"message": "La propuesta se actualizó exitosamente"})
 
@@ -836,6 +847,18 @@ def enviar_feedback():
 
     except:
         return jsonify({"message": "Hubo un error al enviar el feedback"})
+
+#Esta función es un get de los feedback
+@api.route('/get_feedbacks', methods=["POST"])
+def get_feedbacks():
+    try:
+        feedbacks = base.child("feedback").get().val()
+        lista_feedbacks = list(feedbacks.values())
+        return jsonify(lista_feedbacks)
+
+    except:
+        return jsonify({"message": "Hubo un error al consultar los feedbacks"})
+
 
 
 @api.route("/")
